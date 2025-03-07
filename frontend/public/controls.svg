@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 9449 6681" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <g transform="matrix(2.59564,0,0,2.3584,739.468,2345.75)">
+        <rect x="1717.75" y="368.429" width="555.933" height="611.855" style="fill:none;stroke:white;stroke-width:90.52px;"/>
+    </g>
+    <g transform="matrix(2.59564,0,0,2.3584,-2143.71,2345.75)">
+        <rect x="1717.75" y="368.429" width="555.933" height="611.855" style="fill:none;stroke:white;stroke-width:90.52px;"/>
+    </g>
+    <g transform="matrix(2.59564,0,0,2.3584,-701.51,2345.75)">
+        <rect x="1717.75" y="368.429" width="555.933" height="611.855" style="fill:none;stroke:white;stroke-width:90.52px;"/>
+    </g>
+    <g transform="matrix(2.59564,0,0,2.3584,-701.51,902.75)">
+        <rect x="1717.75" y="368.429" width="555.933" height="611.855" style="fill:none;stroke:white;stroke-width:90.52px;"/>
+    </g>
+    <g transform="matrix(59.3774,0,0,77.3339,-83329.5,-44676.3)">
+        <g transform="matrix(22.1999,0,0,22.1999,1488.63,617.356)">
+        </g>
+        <text x="1469.02px" y="617.356px" style="font-family:'FranklinGothic-Medium', 'Franklin Gothic Medium';font-size:22.2px;fill:white;">W</text>
+    </g>
+    <g transform="matrix(3.09262,0,0,2.7505,127.608,-177.848)">
+        <text x="752.766px" y="1702.9px" style="font-family:'FranklinGothic-Medium', 'Franklin Gothic Medium';font-size:629.712px;fill:white;">A</text>
+    </g>
+    <g transform="matrix(2.59564,0,0,2.3584,-4064.44,2345.75)">
+        <rect x="1717.75" y="368.429" width="555.933" height="611.855" style="fill:none;stroke:white;stroke-width:90.52px;"/>
+    </g>
+    <g transform="matrix(3.09262,0,0,2.7505,-1793.13,-491.327)">
+        <text x="745.741px" y="1702.9px" style="font-family:'FranklinGothic-Medium', 'Franklin Gothic Medium';font-size:266.513px;fill:white;">Ctrl</text>
+    </g>
+    <g transform="matrix(3.09262,0,0,2.7505,1606.59,-169.81)">
+        <text x="762.759px" y="1702.9px" style="font-family:'FranklinGothic-Medium', 'Franklin Gothic Medium';font-size:629.712px;fill:white;">S</text>
+    </g>
+    <g transform="matrix(3.09262,0,0,2.7505,2981.07,-169.81)">
+        <text x="736.47px" y="1702.9px" style="font-family:'FranklinGothic-Medium', 'Franklin Gothic Medium';font-size:629.712px;fill:white;">D</text>
+    </g>
+    <g id="mouse-svgrepo-com.svg" transform="matrix(4.16667,0,0,4.16667,8110.98,3274.77)">
+        <g transform="matrix(1,0,0,1,-400,-400)">
+            <g id="SVGRepo_iconCarrier">
+                <path d="M166.667,500C166.667,561.883 191.249,621.237 235.008,664.993C278.766,708.753 338.117,733.33 400,733.33C461.883,733.33 521.233,708.753 564.99,664.993C608.75,621.237 633.333,561.883 633.333,500L633.333,300C633.333,238.116 608.75,178.768 564.99,135.01C521.233,91.251 461.883,66.667 400,66.667C338.117,66.667 278.766,91.251 235.008,135.01C191.249,178.768 166.667,238.116 166.667,300L166.667,500Z" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:50px;stroke-miterlimit:4;"/>
+                <path d="M400,200L400,333.333" style="fill:none;fill-rule:nonzero;stroke:white;stroke-width:50px;stroke-miterlimit:4;"/>
+            </g>
+        </g>
+    </g>
+</svg>
