@@ -11,7 +11,6 @@ db();
 
 // @ts-ignore
 import islandErc20Abi from "./abi/islandErc20Abi.json";
-import { set } from "mongoose";
 
 // const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 // //@ts-ignore
