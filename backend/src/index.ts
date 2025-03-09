@@ -1,70 +1,117 @@
 import { cors } from "@elysiajs/cors";
-import { randomUUIDv7 } from "bun";
-import { Elysia, error, t } from "elysia";
-import { ethers } from "ethers";
+import { Elysia } from "elysia";
 import db from "./db/db";
-import { User } from "./models/user.model";
-import { type Bullet, type Player } from "./types/types";
+import { userRoutes } from "./routes/user.routes";
+import { type Bullet, type Player, Coin } from "./types/types";
+// import webSockets } from "./websockets/websockets";
+
+import { randomUUIDv7, serve, type ServerWebSocket } from "bun";
+
 db();
 
 // @ts-ignore
 import islandErc20Abi from "./abi/islandErc20Abi.json";
+import { set } from "mongoose";
 
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-//@ts-ignore
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const contract = new ethers.Contract(
-  //@ts-ignore
-  process.env.CONTRACT_ADDRESS,
-  islandErc20Abi,
-  wallet
-);
+// const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+// //@ts-ignore
+// const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+// const contract = new ethers.Contract(
+//   //@ts-ignore
+//   process.env.CONTRACT_ADDRESS,
+//   islandErc20Abi,
+//   wallet
+// );
 
 const players: Record<string, Player> = {};
 const bullets: Record<string, Bullet> = {};
+const coins: Record<string, Coin> = {};
 
 const BULLET_LIFETIME = 8000;
+const COIN_LIFETIME = 20000;
+const COIN_SPAWN_INTERVAL = 60000;
+const COINS_PER_SPAWN = 10;
+const COIN_COLLECTION_DISTANCE = 2;
 
-const forbiddenAreas = [
-  { minX: 15, maxX: 25, minZ: 15, maxZ: 25 },
+interface CustomServerWebSocket extends ServerWebSocket {
+  id: string;
+}
 
-  { minX: -45, maxX: -35, minZ: 15, maxZ: 25 },
-  { minX: 73, maxX: 83, minZ: 15, maxZ: 25 },
+function generarPosicionAleatoria(
+  target: { x: number; y: number; z: number },
+  radioMax: number,
+  radioMin: number
+) {
+  let posicionValida = false;
+  let x: number = 0,
+    z: number = 0;
 
-];
+  while (!posicionValida) {
+    const angulo = Math.random() * 2 * Math.PI;
 
-// Generar posición de spawn válida
-function generateSafeSpawnPosition() {
-  const AREA_SIZE = 500; // 100 unidades en cada eje
-  const HALF_AREA = AREA_SIZE / 2;
+    const radio = radioMin + Math.random() * (radioMax - radioMin);
 
-  let position: { x: number; z: number };
-  let isValid = false;
+    x = target.x + radio * Math.cos(angulo);
+    z = target.z + radio * Math.sin(angulo);
 
-  do {
-    position = {
-      x: Math.random() * AREA_SIZE - HALF_AREA,
-      z: Math.random() * AREA_SIZE - HALF_AREA,
-    };
-
-    isValid = !forbiddenAreas.some(
-      (area) =>
-        position.x >= area.minX &&
-        position.x <= area.maxX &&
-        position.z >= area.minZ &&
-        position.z <= area.maxZ
+    const distancia = Math.sqrt(
+      Math.pow(x - target.x, 2) + Math.pow(z - target.z, 2)
     );
-  } while (!isValid);
+
+    posicionValida = distancia >= radioMin && distancia <= radioMax;
+  }
 
   return {
-    x: position.x,
-    y: 0,
-    z: position.z,
+    x: Number(x.toFixed(2)),
+    y: target.y,
+    z: Number(z.toFixed(2)),
   };
 }
 
-const app = new Elysia({ prefix: "/v2" })
+const target = { x: 10, y: 0, z: 10 };
+const config = {
+  radioMax: 50,
+  radioMin: 40,
+};
 
+const spawnCoins = (server: any) => {
+  for (let i = 0; i < COINS_PER_SPAWN; i++) {
+    const coin: Coin = {
+      id: randomUUIDv7(),
+      position: generarPosicionAleatoria(
+        target,
+        config.radioMax,
+        config.radioMin
+      ),
+      createdAt: Date.now(),
+    };
+
+    coins[coin.id] = coin;
+
+    server.publish(
+      "main",
+      JSON.stringify({
+        type: "newCoin",
+        coin,
+      })
+    );
+
+    setTimeout(() => {
+      if (coins[coin.id]) {
+        delete coins[coin.id];
+        server.publish(
+          "main",
+          JSON.stringify({
+            type: "removeCoin",
+            id: coin.id,
+          })
+        );
+      }
+    }, COIN_LIFETIME);
+  }
+};
+
+const app = new Elysia()
   .use(
     cors({
       //@ts-ignore
@@ -73,166 +120,127 @@ const app = new Elysia({ prefix: "/v2" })
       methods: ["GET", "POST"],
     })
   )
+  .group("/v2", (app) => app.use(userRoutes));
 
-  .get("/", () => "Hello Elysia")
+const server = serve({
+  fetch(req) {
+    const url = new URL(req.url);
 
-  .post(
-    "/createUser",
-    async ({ body }) => {
-      try {
-        const address = body.address;
-
-        if (!ethers.isAddress(address))
-          return error(400, { message: "Invalid address" });
-
-        const existUser = await User.findOne({ address: address });
-
-        if (existUser) return error(400, { message: "User already exists" });
-
-        const user = new User({ address: address })
-        await user.save();
-
-        return {
-          message: "User created successfully",
-          user,
-        };
-      } catch (err) {
-        return error(500, { message: `Internal server error: ${err}` });
+    if (url.pathname === "/v2/ws") {
+      if (server.upgrade(req)) {
+        return;
       }
-    },
-    {
-      body: t.Object({
-        address: t.String(),
-      }),
+      return new Response("Not Found", { status: 404 });
     }
-  )
 
-  .post(
-    "/getProfile",
-    async ({ body }) => {
-      try {
-        const address = body.address;
-        const user = await User.findOne({ address: address })
-          .select("-address")
-          .select("-__v")
-          .select("-_id")
-          .select("-createdAt")
-          .select("-updatedAt");
+    return app.handle(req);
+  },
 
-        if (!user) return error(400, { message: "User not found" });
-        return {
-          user,
-        };
-      } catch (err) {
-        return error(500, { message: `Internal server error: ${err}` });
-      }
-    },
-    {
-      body: t.Object({
-        address: t.String(),
-      }),
-    }
-  )
-
-  .post(
-    "/claimFirstCoin",
-    async ({ body }) => {
-      try {
-        const address = body.address;
-
-        if (!ethers.isAddress(address))
-          return error(400, { message: "Invalid address" });
-
-        const user = await User.findOne({ address: address });
-
-        if (!user) return error(400, { message: "User not found" });
-
-        if (user.isClaimedFirstCoin)
-          return error(400, { message: "User already claimed first coin" });
-
-        const tx = await contract.transfer(address, ethers.parseEther("1"));
-        await tx.wait();
-
-        user.isClaimedFirstCoin = true;
-        await user.save();
-
-        return {
-          message: "First coin claimed successfully",
-        };
-      } catch (err) {
-        return error(500, { message: `Internal server error: ${err}` });
-      }
-    },
-    {
-      body: t.Object({
-        address: t.String(),
-      }),
-    }
-  )
-
-  .ws("/ws", {
-    // // validate incoming message
-    // body: t.Object(),
-    // query: t.Object({
-    //   id: t.String(),
-    // }),
-
-    open(ws) {
+  websocket: {
+    open(ws: CustomServerWebSocket) {
+      ws.id = randomUUIDv7();
       ws.subscribe("main");
 
       players[ws.id] = {
-        id: ws.id,
-        position: generateSafeSpawnPosition(),
+        id: randomUUIDv7(),
+        position: generarPosicionAleatoria(
+          target,
+          config.radioMax,
+          config.radioMin
+        ),
         rotation: {
           x: 0,
           y: 0,
           z: 0,
           w: 0,
         },
+        coins: 0,
       };
 
       ws.send(JSON.stringify({ type: "playerId", id: ws.id }));
       ws.send(JSON.stringify({ type: "currentPlayers", players }));
+      ws.send(JSON.stringify({ type: "currentCoins", coins }));
 
       ws.publish(
         "main",
-        JSON.stringify({
-          type: "newPlayer",
-          player: players[ws.id],
-        })
+        JSON.stringify({ type: "newPlayer", player: players[ws.id] })
       );
+
+      if (Object.keys(players).length === 1) {
+        // setTimeout(() => spawnCoins(server), 20000);
+
+        const coinInterval = setInterval(() => {
+          if (Object.keys(players).length > 0) {
+            spawnCoins(server);
+          } else {
+            clearInterval(coinInterval);
+          }
+        }, COIN_SPAWN_INTERVAL);
+      }
 
       console.log("Player connected:", ws.id);
     },
+    message(ws: CustomServerWebSocket, message: any) {
+      const body = JSON.parse(message);
 
-    message(ws, { message }) {
-      switch (ws.body.type) {
+      switch (body.type) {
         case "playerMovement": {
-          players[ws.id].position = ws.body.position;
-          players[ws.id].rotation = ws.body.rotation;
+          players[ws.id].position = body.position;
+          players[ws.id].rotation = body.rotation;
 
           ws.publish(
             "main",
             JSON.stringify({ type: "playerMovement", player: players[ws.id] })
           );
+
+          Object.entries(coins).forEach(([coinId, coin]) => {
+            const dx = players[ws.id].position.x - coin.position.x;
+            const dz = players[ws.id].position.z - coin.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            if (distance <= COIN_COLLECTION_DISTANCE) {
+              delete coins[coinId];
+
+              players[ws.id].coins += 1;
+
+              server.publish(
+                "main",
+                JSON.stringify({
+                  type: "coinCollected",
+                  coinId,
+                  playerId: ws.id,
+                })
+              );
+
+              server.publish(
+                "main",
+                JSON.stringify({ type: "removeCoin", id: coinId })
+              );
+
+              server.publish(
+                "main",
+                JSON.stringify({ type: "currentCoins", coins })
+              );
+            }
+          });
+
           break;
         }
 
         case "bulletShot": {
           const bullet: Bullet = {
             id: randomUUIDv7(),
+            position: body.position,
+            velocity: body.velocity,
             owner: ws.id,
-            position: ws.body.position,
-            velocity: ws.body.velocity,
           };
 
           ws.publish("main", JSON.stringify({ type: "newBullet", bullet }));
 
           setTimeout(() => {
-            delete bullets[bullet.id];
             ws.publish(
               "main",
-              JSON.stringify({ type: "removeBullet", id: bullet.id })
+              JSON.stringify({ type: "bulletRemoved", id: bullet.id })
             );
           }, BULLET_LIFETIME);
 
@@ -240,34 +248,33 @@ const app = new Elysia({ prefix: "/v2" })
         }
 
         case "removeBullet": {
-          delete bullets[ws.body.id];
+          delete bullets[body.id];
           ws.publish(
             "main",
-            JSON.stringify({ type: "removeBullet", id: ws.body.id })
+            JSON.stringify({ type: "bulletRemoved", id: body.id })
           );
           break;
         }
       }
     },
-
-    close(ws) {
+    close(ws: CustomServerWebSocket, code, message) {
       delete players[ws.id];
 
-      ws.publish("main", JSON.stringify({ type: "currentPlayers", players }));
-
-      ws.publish(
+      server.publish(
         "main",
-        JSON.stringify({
-          type: "playerDisconnected",
-          id: ws.id,
-        })
+        JSON.stringify({ type: "playerDisconnected", id: ws.id })
       );
 
+      if (Object.keys(players).length === 0) {
+        Object.keys(coins).forEach((coinId) => {
+          delete coins[coinId];
+        });
+      }
       console.log("Player disconnected", ws.id);
     },
-  })
-  .listen(4000);
+    drain(ws) {},
+  },
+  port: 4000,
+});
 
-console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-);
+console.log(`🦊 Elysia is running at ${server.hostname}:${server.port}`);

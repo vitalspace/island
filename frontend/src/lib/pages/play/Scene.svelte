@@ -5,18 +5,20 @@
   import Ground from "./componets/world/Ground.svelte";
   import { WebsocketService } from "./websockets/WebsocketServices";
   import { WS } from "../../constants/constants";
-  import { type Player, type Bullet } from "./types/types";
-  import Island from "./componets/world/Island.svelte"
+  import { type Player, type Bullet, type Coin } from "./types/types";
+  import Island from "./componets/world/Island.svelte";
 
   import Player3d from "./componets/player/player.svelte";
   import RemotePlayer3D from "./componets/player/remotePlayer.svelte";
   import RemoteBullet from "./componets/player/remoteBullet.svelte";
+  import IslandCoin from "./componets/world/islandCoin.svelte";
   // import Boat from './componets/player/boat.svelte';
 
   let playerId = $state("");
   let player = $state<Player>();
   let players = $state<Player[]>([]);
   let bullets = $state<Bullet[]>([]);
+  let coins = $state<Coin[]>([]);
 
   const websockets = new WebsocketService(WS);
   let websocketStatus = $state<"connecting" | "open" | "closed" | "error">(
@@ -27,18 +29,16 @@
   websockets.messages.subscribe((message) => {
     if (!message?.type) return;
 
+    // console.log("message", message.type);
+
     switch (message.type) {
       case "playerId": {
-        // if (typeof message.id !== "string") return;
         playerId = message.id;
         break;
       }
 
       case "currentPlayers": {
-        // if (typeof message.players !== "object") return;
         Object.keys(message.players).forEach((_id) => {
-          // if (!message.players) return;
-
           const { id, position, rotation } = message.players[_id];
 
           if (_id === playerId) {
@@ -60,7 +60,6 @@
       }
 
       case "newPlayer": {
-        // if (typeof message.player !== "object") return;
         players?.push(message.player);
         break;
       }
@@ -72,7 +71,6 @@
       }
 
       case "playerMovement": {
-        // if (typeof message.player !== "object") return;
         players?.forEach((player) => {
           if (player.id === message.player.id) {
             player.position = message.player.position;
@@ -83,9 +81,6 @@
       }
 
       case "newBullet": {
-
-        console.log(message.bullet);
-        // if (typeof message.bullet !== "object") return;
         bullets = [
           ...bullets,
           {
@@ -95,9 +90,40 @@
         break;
       }
 
-      case "removeBullet": {
-        // if (typeof message.id !== "string") return;
+      case "bulletRemoved": {
         bullets = bullets?.filter((bullet) => bullet.id !== message.id);
+        break;
+      }
+
+      case "currentCoins": {
+        if (
+          !message.coins ||
+          !Array.isArray(message.coins) ||
+          message.coins.length === 0
+        )
+          return;
+
+        coins.push(...message.coins);
+
+        break;
+      }
+
+      case "coinCollected": {
+        console.log("coinCollected", message);
+        break;
+      }
+
+      case "newCoin": {
+        coins.push(message.coin);
+        // console.log(" newCoin", message.coin);
+        break;
+      }
+
+      case "removeCoin": {
+        // console.log("removeCoin", message.id);
+        // if (coins.length === 0 && message.id) return;
+        coins = coins?.filter((coin) => coin.id !== message.id);
+        // console.log("removeCoin", message.id);
         break;
       }
     }
@@ -111,11 +137,6 @@
     ref.lookAt(0, 1, 0);
   }}
 />
-
-<T.Mesh>
-  <T.BoxGeometry args={[1, 1, 1]} />
-  <T.MeshNormalMaterial />
-</T.Mesh>
 
 <T.DirectionalLight position={[0, 10, 10]} castShadow />
 
@@ -136,7 +157,16 @@
   {/each}
 
   <Player3d {player} socket={websockets} />
+  {#if coins?.length > 0}
+    {#each coins as coin}
+      <IslandCoin coinInfo={coin} />
+    {/each}
+  {/if}
 {/if}
+
+<!-- <IslandCoin
+  coinInfo={{ id: 1, position: { x: 0, y: 4, z: 0 }, createdAt: 0 }}
+/> -->
 
 <!-- <RemotePlayer3D player={{id: 1, position: { x: 0, y: 1, z: 2 }, rotation: { x: 0, y: 0, z: 0, w: 0 }}} /> -->
 

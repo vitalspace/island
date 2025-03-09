@@ -9,7 +9,7 @@ class App {
     this.address = address;
 
     //@ts-ignore
-    if (window.ethereum !== "undefined") {
+    if (typeof window.ethereum !== "undefined") {
       this.existWeb3 = true;
       // @ts-ignore
       this.provider = new ethers.BrowserProvider(window.ethereum);

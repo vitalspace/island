@@ -26,7 +26,7 @@
     }
   });
 
-  let debug = true;
+  let debug = false;
 </script>
 
 {#if progressLessThanOne && !showCanvas}

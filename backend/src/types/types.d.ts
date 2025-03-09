@@ -11,6 +11,7 @@ export interface Player {
     z: number;
     w: number;
   };
+  coins: number;
 }
 
 export interface Bullet {
@@ -27,3 +28,13 @@ export interface Bullet {
     z: number;
   };
 }
+
+export type Coin = {
+  id: string;
+  position: {
+    x: number;
+    y: number;
+    z: number;
+  };
+  createdAt: number; // Timestamp cuando se creó la moneda
+};
